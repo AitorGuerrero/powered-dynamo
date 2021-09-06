@@ -1,6 +1,5 @@
 import {DynamoDB} from "aws-sdk";
-import DynamoIterator from "dynamo-iterator";
-import ScanIterator from "dynamo-iterator/scan-iterator.class";
+import DynamoGeneratorFactory from "dynamo-iterator";
 import {EventEmitter} from "events";
 import MaxRetriesReached from "./error.max-retries-reached.class";
 import DocumentClient = DynamoDB.DocumentClient;
@@ -47,13 +46,13 @@ export default class PoweredDynamo {
 	}
 
 	public retryWaitTimes: number[] = [100, 500, 1000];
-	private iterator: DynamoIterator;
+	private generatorFactory: DynamoGeneratorFactory;
 
 	constructor(
 		private documentClient: DocumentClient,
 		public eventEmitter = new EventEmitter(),
 	) {
-		this.iterator = new DynamoIterator(documentClient);
+		this.generatorFactory = new DynamoGeneratorFactory(documentClient);
 	}
 
 	public get(input: DocumentClient.GetItemInput) {
@@ -86,12 +85,12 @@ export default class PoweredDynamo {
 		return result;
 	}
 
-	public scan(input: DocumentClient.ScanInput): Promise<ScanIterator> {
-		return this.iterator.scan(input);
+	public scan(input: DocumentClient.ScanInput): AsyncGenerator<DynamoDB.DocumentClient.AttributeMap> {
+		return this.generatorFactory.scan(input);
 	}
 
-	public query(input: DocumentClient.QueryInput) {
-		return this.iterator.query(input);
+	public query(input: DocumentClient.QueryInput): AsyncGenerator<DynamoDB.DocumentClient.AttributeMap> {
+		return this.generatorFactory.query(input);
 	}
 
 	public put(input: DocumentClient.PutItemInput) {
