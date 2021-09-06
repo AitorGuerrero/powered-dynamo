@@ -7,7 +7,6 @@
     "test": "mocha",
     "build:check": "tsc --noEmit",
     "style:check": "tslint -p .",
-    "preversion": "yarn && yarn run check:style && yarn run check:builds && yarn test",
     "coverage": "nyc mocha",
     "prepublish": "yarn tsc --build",
     "postpublish": "yarn tsc --build --clean",
