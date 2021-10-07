@@ -3,6 +3,8 @@
         "module": "commonjs",
         "target": "ESNext",
         "noImplicitAny": true,
+        "strict": true,
+        "noImplicitThis": true,
         "sourceMap": true,
         "declaration": true
     },

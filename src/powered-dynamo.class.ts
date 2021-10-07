@@ -13,7 +13,7 @@ enum EventType {
 
 export default class PoweredDynamo {
 
-	private static splitBatchWriteRequestsInChunks(request: DocumentClient.BatchWriteItemInput) {
+	private static splitBatchWriteRequestsInChunks(request: DocumentClient.BatchWriteItemInput): DocumentClient.BatchWriteItemRequestMap[] {
 		const requests: {tableName: string, request: DocumentClient.WriteRequest}[] = [];
 		const batches: DocumentClient.BatchWriteItemRequestMap[] = [];
 		for (const tableName of Object.keys(request.RequestItems)) {
@@ -24,10 +24,7 @@ export default class PoweredDynamo {
 		for (let i = 0; i < requests.length; i += maxBatchWriteElems) {
 			const batchRequestMap: DocumentClient.BatchWriteItemRequestMap = {};
 			for (const itemRequest of requests.slice(i, i + maxBatchWriteElems)) {
-				batchRequestMap[itemRequest.tableName] = [].concat(
-					batchRequestMap[itemRequest.tableName] || [],
-					itemRequest.request,
-				);
+				batchRequestMap[itemRequest.tableName] = [...(batchRequestMap[itemRequest.tableName] || []), itemRequest.request];
 			}
 			batches.push(batchRequestMap);
 		}
