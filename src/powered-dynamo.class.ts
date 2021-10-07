@@ -35,13 +35,12 @@ export default class PoweredDynamo {
 		return batches;
 	}
 
-	private static isInternalServerError(error: Error) {
-		return error.name === "InternalServerError";
+	private static isInternalServerError(error: unknown): boolean {
+		return error instanceof Error && error.name === "InternalServerError";
 	}
 
-	private static isRetryableTransactionError(err: Error) {
-		return err.name === "TransactionCanceledException"
-			&& /ConditionalCheckFailed/.test(err.message) === false
+	private static isRetryableTransactionError(err: unknown): boolean {
+		return err instanceof Error && err.name === "TransactionCanceledException" && !/ConditionalCheckFailed/.test(err.message)
 			&& /TransactionConflict/.test(err.message);
 	}
 
@@ -59,9 +58,9 @@ export default class PoweredDynamo {
 		return this.documentClient.get(input).promise();
 	}
 
-	public async getList(tableName: string, keys: DocumentClient.Key[]) {
+	public async getList(tableName: string, keys: DocumentClient.Key[]): Promise<Map<DocumentClient.Key, DocumentClient.AttributeMap | undefined>> {
 		const uniqueKeys: DocumentClient.Key = filterRepeatedKeys(keys);
-		const result = new Map<DocumentClient.Key, DocumentClient.AttributeMap>();
+		const result = new Map<DocumentClient.Key, DocumentClient.AttributeMap | undefined>();
 		const batchProcesses: Promise<void>[] = [];
 		for (let i = 0; i < uniqueKeys.length; i += maxBatchGetElems) {
 			batchProcesses.push(new Promise(async (rs, rj) => {
@@ -71,8 +70,8 @@ export default class PoweredDynamo {
 						RequestItems: {[tableName]: {Keys: keysBatch}},
 					};
 					const response = await this.asyncBatchGet(input);
-					for (const item of response.Responses[tableName]) {
-						result.set(keysBatch.find((k) => sameKey(k, item)), item);
+					for (const key of keys) {
+						result.set(key, response.Responses![tableName].find((item) => sameKey(key, item)));
 					}
 					rs();
 				} catch (err) {
@@ -138,7 +137,7 @@ export default class PoweredDynamo {
 	}
 
 	private async retryError<O>(
-		isRetryable: (err: Error) => boolean,
+		isRetryable: (err: unknown) => boolean,
 		execution: () => Promise<O>,
 		tryCount = 0,
 	): Promise<O> {
@@ -180,6 +179,6 @@ function filterRepeatedKeys(arrArg: DocumentClient.Key[]) {
 	);
 }
 
-function sameKey(key1: DocumentClient.Key, key2: DocumentClient.Key) {
+function sameKey(key1: DocumentClient.Key, key2: DocumentClient.Key): boolean {
 	return Object.keys(key1).every((k) => key2[k] === key1[k]);
 }

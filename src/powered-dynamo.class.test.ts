@@ -24,7 +24,7 @@ describe("PoweredDynamoClass", () => {
 	describe("When putting data", () => {
 		describe("Having once a system error", () => {
 			beforeEach(() => fakeDocumentClient.failOn("put", new InternalServerError()));
-			it("should retry the call", async () => poweredDynamo.put({TableName: tableName, Item: null}));
+			it("should retry the call", async () => poweredDynamo.put({TableName: tableName, Item: null as any}));
 		});
 		describe("Having 4 times a system error", () => {
 			beforeEach(() => {
@@ -32,7 +32,7 @@ describe("PoweredDynamoClass", () => {
 					fakeDocumentClient.failOn("put", new InternalServerError());
 				}
 			});
-			it("should throw max retries error", async () => poweredDynamo.put({TableName: tableName, Item: null}).then(
+			it("should throw max retries error", async () => poweredDynamo.put({TableName: tableName, Item: null as any}).then(
 				() => expect.fail(),
 				(err) => expect(err).instanceOf(MaxRetriesReached),
 			));
