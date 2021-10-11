@@ -77,7 +77,7 @@ export default class PoweredDynamo {
 					const input: DocumentClient.BatchGetItemInput = {
 						RequestItems: {[tableName]: {Keys: keysBatch}},
 					};
-					const response = await this.asyncBatchGet(input);
+					const response = await this.documentClient.batchGet(input).promise();
 					for (const key of keys) {
 						result.set(key, response.Responses![tableName].find((item) => sameKey(key, item)));
 					}
@@ -130,13 +130,13 @@ export default class PoweredDynamo {
 
 	public async batchWrite(request: DocumentClient.BatchWriteItemInput): Promise<void> {
 		for (const batch of PoweredDynamo.splitBatchWriteRequestsInChunks(request)) {
-			await this.retryInternalServerError(() => this.asyncBatchWrite(Object.assign(request, {RequestItems: batch})));
+			await this.retryInternalServerError(() => this.documentClient.batchWrite(Object.assign(request, {RequestItems: batch})).promise());
 		}
 	}
 
 	public async transactWrite(input: DocumentClient.TransactWriteItemsInput): Promise<void> {
 		await this.retryTransactionCancelledServerError(() =>
-			this.retryInternalServerError(() => this.asyncTransactWrite(input)),
+			this.retryInternalServerError(() => this.documentClient.transactWrite(input).promise()),
 		);
 	}
 
@@ -173,18 +173,6 @@ export default class PoweredDynamo {
 
 			throw error;
 		}
-	}
-
-	private asyncBatchGet(input: DynamoDB.DocumentClient.BatchGetItemInput) {
-		return this.documentClient.batchGet(input).promise();
-	}
-
-	private async asyncTransactWrite(input: DocumentClient.TransactWriteItemsInput) {
-		await this.documentClient.transactWrite(input).promise();
-	}
-
-	private async asyncBatchWrite(input: DocumentClient.BatchWriteItemInput) {
-		await this.documentClient.batchWrite(input).promise();
 	}
 }
 
