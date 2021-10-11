@@ -1,3 +1,4 @@
+import * as assert from "assert";
 import {DynamoDB} from "aws-sdk";
 import DynamoGeneratorFactory from "dynamo-iterator";
 import {EventEmitter} from "events";
@@ -41,7 +42,17 @@ export default class PoweredDynamo {
 			&& /TransactionConflict/.test(err.message);
 	}
 
+	private static async sumCountResponses(generator: AsyncGenerator<DynamoDB.DocumentClient.QueryOutput | DynamoDB.DocumentClient.ScanOutput>): Promise<number> {
+		let count = 0;
+		for await (const response of generator) {
+			count += response.Count!;
+		}
+
+		return count;
+	}
+
 	public retryWaitTimes: number[] = [100, 500, 1000];
+
 	private generatorFactory: DynamoGeneratorFactory;
 
 	constructor(
@@ -87,6 +98,16 @@ export default class PoweredDynamo {
 
 	public query(input: DocumentClient.QueryInput): AsyncGenerator<DynamoDB.DocumentClient.AttributeMap> {
 		return this.generatorFactory.query(input);
+	}
+
+	public async scanCount(input: DocumentClient.ScanInput): Promise<number> {
+		assert.equal(input.Select, 'COUNT', 'For count scan Select must be "count"');
+		return PoweredDynamo.sumCountResponses(this.generatorFactory.scanResponses(input));
+	}
+
+	public async queryCount(input: DocumentClient.QueryInput): Promise<number> {
+		assert.equal(input.Select, 'COUNT', 'For count query Select must be "count"');
+		return PoweredDynamo.sumCountResponses(this.generatorFactory.queryResponses(input));
 	}
 
 	public put(input: DocumentClient.PutItemInput) {

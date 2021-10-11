@@ -34,6 +34,7 @@ export class TransactionConflict extends Error {
 export default class FakeDocumentClient {
 
     public scanQueueBatches: DynamoDB.DocumentClient.ScanOutput[] = [];
+    public queryQueueBatches: DynamoDB.DocumentClient.QueryOutput[] = [];
     private pendingFails: {[functionName: string]: Error[]} = {
         put: [],
         transactWrite: [],
@@ -59,6 +60,12 @@ export default class FakeDocumentClient {
     public scan(i: DocumentClient.ScanInput) {
         return {
             promise: async () => this.scanQueueBatches.shift(),
+        };
+    }
+
+    public query(i: DocumentClient.QueryInput) {
+        return {
+            promise: async () => this.queryQueueBatches.shift(),
         };
     }
 

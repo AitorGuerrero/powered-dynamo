@@ -69,7 +69,7 @@ describe("PoweredDynamoClass", () => {
 			const thirdElementId = "thirdElementId";
 			beforeEach(() => fakeDocumentClient.scanQueueBatches = [
 				{Items: [{id: firstElementId}, {id: "itemA"}], LastEvaluatedKey: {}},
-				{Items: [{id: thirdElementId}, {id: "itemB"}, {id: "itemC"}], LastEvaluatedKey: {}},
+				{Items: [{id: thirdElementId}, {id: "itemB"}, {id: "itemC"}]},
 			]);
 			describe("and asking for the first result", () => {
 				it("should return first element", async () => {
@@ -87,5 +87,27 @@ describe("PoweredDynamoClass", () => {
 				});
 			});
 		});
+	});
+	describe('document client having 2 count scan batches with a total of 11 counted items', () => {
+		beforeEach(() => fakeDocumentClient.scanQueueBatches = [
+			{Count: 3, LastEvaluatedKey: {}},
+			{Count: 8},
+		]);
+		describe('and asked for scan count', () => {
+			let response: number;
+			beforeEach(async () => response = await poweredDynamo.scanCount({TableName: tableName, Select: 'COUNT'}));
+			it('should return 11', () => expect(response).to.be.equal(11));
+		})
+	});
+	describe('document client having 2 count query batches with a total of 11 counted items', () => {
+		beforeEach(() => fakeDocumentClient.queryQueueBatches = [
+			{Count: 3, LastEvaluatedKey: {}},
+			{Count: 8},
+		]);
+		describe('and asked for scan count', () => {
+			let response: number;
+			beforeEach(async () => response = await poweredDynamo.queryCount({TableName: tableName, Select: 'COUNT'}));
+			it('should return 11', () => expect(response).to.be.equal(11));
+		})
 	});
 });
