@@ -1,6 +1,6 @@
 {
   "name": "powered-dynamo",
-  "version": "4.0.2",
+  "version": "4.1.0",
   "description": "Simple dynamo interface",
   "main": "src/index.js",
   "engines": {
