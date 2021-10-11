@@ -62,7 +62,7 @@ export default class PoweredDynamo {
 		this.generatorFactory = new DynamoGeneratorFactory(documentClient);
 	}
 
-	public get(input: DocumentClient.GetItemInput) {
+	public get(input: DocumentClient.GetItemInput): Promise<DocumentClient.GetItemOutput> {
 		return this.documentClient.get(input).promise();
 	}
 
@@ -110,44 +110,44 @@ export default class PoweredDynamo {
 		return PoweredDynamo.sumCountResponses(this.generatorFactory.queryResponses(input));
 	}
 
-	public put(input: DocumentClient.PutItemInput) {
+	public put(input: DocumentClient.PutItemInput): Promise<DocumentClient.PutItemOutput> {
 		return this.retryInternalServerError(
 			() => this.documentClient.put(input).promise(),
 		);
 	}
 
-	public update(input: DocumentClient.UpdateItemInput) {
+	public async update(input: DocumentClient.UpdateItemInput): Promise<DocumentClient.UpdateItemOutput> {
 		return this.retryInternalServerError(
 			() => this.documentClient.update(input).promise(),
 		);
 	}
 
-	public delete(input: DocumentClient.DeleteItemInput) {
+	public async delete(input: DocumentClient.DeleteItemInput): Promise<DocumentClient.DeleteItemOutput> {
 		return this.retryInternalServerError(
 			() => this.documentClient.delete(input).promise(),
 		);
 	}
 
-	public async batchWrite(request: DocumentClient.BatchWriteItemInput) {
+	public async batchWrite(request: DocumentClient.BatchWriteItemInput): Promise<void> {
 		for (const batch of PoweredDynamo.splitBatchWriteRequestsInChunks(request)) {
 			await this.retryInternalServerError(() => this.asyncBatchWrite(Object.assign(request, {RequestItems: batch})));
 		}
 	}
 
-	public async transactWrite(input: DocumentClient.TransactWriteItemsInput) {
+	public async transactWrite(input: DocumentClient.TransactWriteItemsInput): Promise<void> {
 		await this.retryTransactionCancelledServerError(() =>
 			this.retryInternalServerError(() => this.asyncTransactWrite(input)),
 		);
 	}
 
-	private async retryTransactionCancelledServerError<O>(execution: () => Promise<O>) {
+	private async retryTransactionCancelledServerError<O>(execution: () => Promise<O>): Promise<O> {
 		return this.retryError(
 			PoweredDynamo.isRetryableTransactionError,
 			execution,
 		);
 	}
 
-	private async retryInternalServerError<O>(execution: () => Promise<O>) {
+	private async retryInternalServerError<O>(execution: () => Promise<O>): Promise<O> {
 		return this.retryError(
 			PoweredDynamo.isInternalServerError,
 			execution,
