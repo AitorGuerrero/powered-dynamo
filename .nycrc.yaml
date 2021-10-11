@@ -2,8 +2,8 @@ all: true
 check-coverage: true
 statements: 62
 branches: 84
-functions: 61
-lines: 63
+functions: 63
+lines: 64
 watermarks:
   branches: [90, 100]
   lines: [90, 100]

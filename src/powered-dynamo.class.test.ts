@@ -1,3 +1,4 @@
+import {DynamoDB} from "aws-sdk";
 import {expect} from "chai";
 import {beforeEach, describe, it} from "mocha";
 import MaxRetriesReached from "./error.max-retries-reached.class";
@@ -62,32 +63,6 @@ describe("PoweredDynamoClass", () => {
 			));
 		});
 	});
-
-	describe("When requesting scanned data", () => {
-		describe("and scan returns 2 batches and 5 elements total", () => {
-			const firstElementId = "firstElementId";
-			const thirdElementId = "thirdElementId";
-			beforeEach(() => fakeDocumentClient.scanQueueBatches = [
-				{Items: [{id: firstElementId}, {id: "itemA"}], LastEvaluatedKey: {}},
-				{Items: [{id: thirdElementId}, {id: "itemB"}, {id: "itemC"}]},
-			]);
-			describe("and asking for the first result", () => {
-				it("should return first element", async () => {
-					const element = (await (await poweredDynamo.scan({TableName: tableName})).next()).value;
-					expect(element.id).to.be.equal(firstElementId);
-				});
-			});
-			describe("and asking for the third result", () => {
-				it("should return third element", async () => {
-					const result = await poweredDynamo.scan({TableName: tableName});
-					await result.next();
-					await result.next();
-					const element = (await result.next()).value;
-					expect(element.id).to.be.equal(thirdElementId);
-				});
-			});
-		});
-	});
 	describe('and asked for scan count with "select" attribute different from "COUNT"', () => {
 		let error: Error | undefined;
 		beforeEach(() => poweredDynamo.scanCount({TableName: tableName}).catch((err) => error = err));
@@ -108,6 +83,48 @@ describe("PoweredDynamoClass", () => {
 			beforeEach(async () => response = await poweredDynamo.scanCount({TableName: tableName, Select: 'COUNT'}));
 			it('should return 11', () => expect(response).to.be.equal(11));
 		})
+	});
+	describe('document client having 2 query response batches', () => {
+		const item0Id = 'item0Id';
+		const item1Id = 'item1Id';
+		beforeEach(() => fakeDocumentClient.queryQueueBatches = [
+			{Items: [{id: item0Id}], LastEvaluatedKey: {}},
+			{Items: [{id: item1Id}]},
+		]);
+		describe('and asking for all the items', () => {
+			const items: DynamoDB.DocumentClient.AttributeMap[] = [];
+			beforeEach(async () => {
+				for await (const item of poweredDynamo.query({TableName: tableName})) {
+					items.push(item);
+				}
+			});
+			it('should return all the items', () => {
+				expect(items).to.have.length(2);
+				expect(items[0].id).to.be.equal(item0Id);
+				expect(items[1].id).to.be.equal(item1Id);
+			});
+		});
+	});
+	describe('document client having 2 scan response batches', () => {
+		const item0Id = 'item0Id';
+		const item1Id = 'item1Id';
+		beforeEach(() => fakeDocumentClient.scanQueueBatches = [
+			{Items: [{id: item0Id}], LastEvaluatedKey: {}},
+			{Items: [{id: item1Id}]},
+		]);
+		describe('and asking for all the items', () => {
+			const items: DynamoDB.DocumentClient.AttributeMap[] = [];
+			beforeEach(async () => {
+				for await (const item of poweredDynamo.scan({TableName: tableName})) {
+					items.push(item);
+				}
+			});
+			it('should return all the items', () => {
+				expect(items).to.have.length(2);
+				expect(items[0].id).to.be.equal(item0Id);
+				expect(items[1].id).to.be.equal(item1Id);
+			});
+		});
 	});
 	describe('document client having 2 count query batches with a total of 11 counted items', () => {
 		beforeEach(() => fakeDocumentClient.queryQueueBatches = [
