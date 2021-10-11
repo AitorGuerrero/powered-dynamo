@@ -88,6 +88,16 @@ describe("PoweredDynamoClass", () => {
 			});
 		});
 	});
+	describe('and asked for scan count with "select" attribute different from "COUNT"', () => {
+		let error: Error | undefined;
+		beforeEach(() => poweredDynamo.scanCount({TableName: tableName}).catch((err) => error = err));
+		it('should fail', async () => expect(error).to.be.instanceof(Error));
+	});
+	describe('and asked for query count with "select" attribute different from "COUNT"', () => {
+		let error: Error | undefined;
+		beforeEach(() => poweredDynamo.queryCount({TableName: tableName}).catch((err) => error = err));
+		it('should fail', async () => expect(error).to.be.instanceof(Error));
+	});
 	describe('document client having 2 count scan batches with a total of 11 counted items', () => {
 		beforeEach(() => fakeDocumentClient.scanQueueBatches = [
 			{Count: 3, LastEvaluatedKey: {}},
